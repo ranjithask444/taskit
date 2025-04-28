@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<aside>
+    <h3>Menu</h3>
+    <ul>
+        <li><a href="/tasks">My Tasks</a></li>
+        <li th:if="${#authorization.expression('hasRole(''MANAGER'')')}"><a href="/tasks/manage">Manage Tasks</a></li>
+        <li th:if="${#authorization.expression('hasRole(''ADMIN'')')}"><a href="/users">Manage Users</a></li>
+    </ul>
+</aside>
+</body>
+</html>
