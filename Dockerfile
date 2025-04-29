@@ -1,5 +1,5 @@
 # Use a base image with JDK
-FROM eclipse-temurin:17-jdk-alpine as builder
+FROM eclipse-temurin:21-jdk-alpine as builder
 
 # Set working directory
 WORKDIR /app
