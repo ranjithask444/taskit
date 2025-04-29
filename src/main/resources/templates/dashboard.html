@@ -81,10 +81,10 @@
         <table class="min-w-full text-sm">
             <thead class="bg-gray-100/80 text-gray-700 font-semibold uppercase">
             <tr>
-                <th class="px-6 py-4">Title</th>
-                <th class="px-6 py-4">Priority</th>
-                <th class="px-6 py-4">Status</th>
-                <th class="px-6 py-4">Assignee</th>
+                <th class="px-6 py-4 text-left">Title</th>
+                <th class="px-6 py-4 text-left">Priority</th>
+                <th class="px-6 py-4 text-left">Status</th>
+                <th class="px-6 py-4 text-left">Assignee</th>
             </tr>
             </thead>
             <tbody class="divide-y divide-gray-300 font-serif text-gray-800 text-base">
@@ -101,7 +101,6 @@
                 <td class="px-6 py-4" th:text="${task.priority}"></td>
                 <td class="px-6 py-4" th:text="${task.status}"></td>
                 <td class="px-6 py-4" th:text="${task.assignedTo.name}"></td>
-                <td class="px-6 py-4 text-gray-400 italic">—</td> <!-- Empty actions column for now -->
             </tr>
             </tbody>
         </table>
