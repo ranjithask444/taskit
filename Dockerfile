@@ -12,7 +12,7 @@ RUN chmod +x mvnw
 RUN ./mvnw clean package -DskipTests
 
 # ---- Production stage ----
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jdk-alpine
 
 # Copy built JAR from builder stage
 COPY --from=builder /app/target/*.jar /app/app.jar
