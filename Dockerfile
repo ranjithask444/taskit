@@ -7,6 +7,7 @@ WORKDIR /app
 # Copy your project files (adjust for Maven or Gradle)
 COPY . .
 
+RUN chmod +x mvnw
 # Build your project (Maven example)
 RUN ./mvnw clean package -DskipTests
 
