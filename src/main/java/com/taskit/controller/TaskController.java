@@ -58,9 +58,9 @@ public class TaskController {
         return "task_details";
     }
 
-    @GetMapping("/edit/2")
-    public String showEditForm( Model model) {
-        Task task = taskService.getTaskById(2L);
+    @GetMapping("/edit/{taskId}")
+    public String showEditForm( Model model, @PathVariable Long taskId) {
+        Task task = taskService.getTaskById(taskId);
         List<User> allUsers = userRepository.findAll();
         model.addAttribute("task", task);
         model.addAttribute("users", allUsers);
