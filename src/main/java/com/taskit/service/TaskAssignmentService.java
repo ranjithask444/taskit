@@ -69,7 +69,7 @@ public class TaskAssignmentService {
             cnt++;
             userListJson.append("{")
                     .append("\"user_id\": ").append(user.getId()).append(",")
-                    .append("\"skills\": ").append(formatSkills(user.getSkills())).append(",")
+                    //.append("\"skills\": ").append(formatSkills(user.getSkills())).append(",")
                     .append("\"available_bandwidth\": ").append(user.getAvailableBandwidth())
                     .append("},");
         }
@@ -82,7 +82,7 @@ public class TaskAssignmentService {
         return "{"
                 + "\"task_id\": " + task.getId() + ","
                 + "\"task_title\": \"" + task.getTitle() + "\","
-                + "\"skills_required\": " + formatSkills(task.getSkillsRequired()) + ","
+                //+ "\"skills_required\": " + formatSkills(task.getSkillsRequired()) + ","
                 + "\"priority\": \"" + task.getPriority() + "\","
                 + "\"deadline_hours\": " + task.getDeadline().getHour() + ","
                 + "\"candidate_employees\": " + userListJson.toString()

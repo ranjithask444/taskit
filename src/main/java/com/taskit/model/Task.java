@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -45,10 +47,13 @@ public class Task {
     private LocalDateTime deadline;
 
     // 🔥 NEW: Skills required for the task
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "task_skills", joinColumns = @JoinColumn(name = "task_id"))
-    @Column(name = "skill_required")
-    private List<String> skillsRequired;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "task_skills",
+            joinColumns = @JoinColumn(name = "task_id"),
+            inverseJoinColumns = @JoinColumn(name = "skill_id")
+    )
+    private Set<Skill> skillsRequired = new HashSet<>();
 
     public enum Priority {
         HIGH, MEDIUM, LOW

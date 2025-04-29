@@ -5,7 +5,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -33,11 +35,13 @@ public class User {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // 🔥 NEW: Skills (comma-separated for simplicity)
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(name = "user_skills", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "skill")
-    private List<String> skills;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "user_skills",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "skill_id")
+    )
+    private Set<Skill> skills = new HashSet<>();
 
     // 🔥 NEW: Available bandwidth in hours (or workload slots)
     @Column(name = "available_bandwidth", nullable = false, columnDefinition = "INTEGER DEFAULT 0")

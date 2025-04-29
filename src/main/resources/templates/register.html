@@ -73,23 +73,12 @@
 
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1" for="skills">Skills</label>
-            <select id="skills" name="skills" multiple required
+            <select id="skills" name="skillIds" multiple required
                     class="w-full h-48 px-4 py-3 rounded-xl border border-gray-300 bg-white/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-400 focus:bg-white overflow-auto">
-                <option value="Critical Thinking">🧠 Critical Thinking</option>
-                <option value="Creativity">🎨 Creativity</option>
-                <option value="Teamwork">🤝 Teamwork</option>
-                <option value="Strategic Planning">🗺️ Strategic Planning</option>
-                <option value="Communication">🗣️ Communication</option>
-                <option value="Leadership">🏆 Leadership</option>
-                <option value="Python">🐍 Python</option>
-                <option value="Technical Writing">📝 Technical Writing</option>
-                <option value="SQL">🛢️ SQL</option>
-                <option value="Java">☕ Java</option>
-                <option value="Project Management">📋 Project Management</option>
-                <option value="Time Management">⏰ Time Management</option>
-                <option value="Problem Solving">🛠️ Problem Solving</option>
-                <option value="Negotiation">🤝 Negotiation</option>
-                <option value="Data Analysis">📊 Data Analysis</option>
+                <option th:each="skill : ${skills}"
+                        th:value="${skill.id}"
+                        th:text="${skill.icon + ' ' + skill.name}">
+                </option>
             </select>
             <p class="text-xs text-gray-500 mt-1">Hold Ctrl (Windows) or Command (Mac) to select multiple skills</p>
         </div>

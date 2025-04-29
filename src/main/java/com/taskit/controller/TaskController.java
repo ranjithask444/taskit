@@ -5,6 +5,7 @@ import com.taskit.model.TaskEfficiency;
 import com.taskit.model.TaskHistory;
 import com.taskit.model.User;
 import com.taskit.repository.UserRepository;
+import com.taskit.service.SkillService;
 import com.taskit.service.TaskEfficiencyService;
 import com.taskit.service.TaskHistoryService;
 import com.taskit.service.TaskService;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.HashSet;
 import java.util.List;
 
 @Controller
@@ -29,10 +31,15 @@ public class TaskController {
 
     @Autowired
     private TaskHistoryService taskHistoryService;
+
     @Autowired
     private TaskEfficiencyService taskEfficiencyService;
+
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private SkillService skillService;
 
     @GetMapping("/user/{userId}/tasks")
     public String viewUserTasks(@PathVariable Long userId, Model model) {
@@ -99,12 +106,13 @@ public class TaskController {
         model.addAttribute("task", new Task());
         model.addAttribute("users", userRepository.findAll());
         model.addAttribute("priorities", Task.Priority.values());
+        model.addAttribute("skills", skillService.getAvailableSkills());
         return "task-form";
     }
 
     @PostMapping("/add")
-    public String createTask(@ModelAttribute Task task, @RequestParam("skills") List<String> skills) {
-        task.setSkillsRequired(skills);
+    public String createTask(@ModelAttribute Task task, @RequestParam("skillIds") List<Long> skills) {
+        task.setSkillsRequired(new HashSet<>(skillService.getSkillsById(skills)));
         taskService.createTask(task);
         return "redirect:/dashboard";
     }
