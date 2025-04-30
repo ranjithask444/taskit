@@ -1,10 +1,12 @@
 package com.taskit.service;
 
 import com.taskit.dto.PredictionResponse;
+import com.taskit.model.Skill;
 import com.taskit.model.Task;
 import com.taskit.model.User;
 import com.taskit.repository.TaskRepository;
 import com.taskit.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -16,9 +18,11 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
+@Slf4j
 @Service
 public class TaskAssignmentService {
 
@@ -34,17 +38,14 @@ public class TaskAssignmentService {
     @Autowired
     private UserRepository userRepository;
 
-    // Fetch unassigned tasks from the database
     private List<Task> fetchUnassignedTasks() {
         return taskRepository.findByAssignedToIsNull();  // Assuming query method is defined to fetch unassigned tasks
     }
 
-    // Find matching employees based on skills and available bandwidth
     private List<User> findMatchingEmployees(Task task) {
         System.out.println("Checking for skills in:= "+ task.getSkillsRequired());
         List<User> allUsers = userRepository.findBySkillsIn(task.getSkillsRequired());
         System.out.println("Fetched all the users:= "+allUsers.size());
-
         return allUsers;
     }
 
@@ -69,7 +70,7 @@ public class TaskAssignmentService {
             cnt++;
             userListJson.append("{")
                     .append("\"user_id\": ").append(user.getId()).append(",")
-                    //.append("\"skills\": ").append(formatSkills(user.getSkills())).append(",")
+                    .append("\"skills\": ").append(formatSkills(user.getSkills())).append(",")
                     .append("\"available_bandwidth\": ").append(user.getAvailableBandwidth())
                     .append("},");
         }
@@ -79,20 +80,32 @@ public class TaskAssignmentService {
         }
         userListJson.append("]");
 
+        int priority = 0;
+        if(task.getPriority() == Task.Priority.HIGH){
+            priority = 1;
+        }
+        if(task.getPriority() == Task.Priority.MEDIUM){
+            priority = 2;
+        }
+        if(task.getPriority() == Task.Priority.LOW){
+            priority = 3;
+        }
+
         return "{"
                 + "\"task_id\": " + task.getId() + ","
                 + "\"task_title\": \"" + task.getTitle() + "\","
-                //+ "\"skills_required\": " + formatSkills(task.getSkillsRequired()) + ","
-                + "\"priority\": \"" + task.getPriority() + "\","
+                + "\"skills_required\": " + formatSkills(task.getSkillsRequired()) + ","
+                + "\"priority\": \"" + priority + "\","
                 + "\"deadline_hours\": " + task.getDeadline().getHour() + ","
                 + "\"candidate_employees\": " + userListJson.toString()
                 + "}";
     }
 
-    private String formatSkills(List<String> skills) {
+    private String formatSkills(Set<Skill> skillsSet) {
         StringBuilder skillsJson = new StringBuilder("[");
-        for (String skill : skills) {
-            skillsJson.append("\"").append(skill).append("\",");
+        List<Skill> skills = skillsSet.stream().toList();
+        for (Skill skill : skills) {
+            skillsJson.append("\"").append(skill.getId()).append("\",");
         }
         if (skillsJson.length() > 1) {
             skillsJson.setLength(skillsJson.length() - 1); // Remove trailing comma
@@ -104,13 +117,12 @@ public class TaskAssignmentService {
 
     // Assign the employee to the task using the AI response
     private void assignEmployeeToTask(Task task, PredictionResponse prediction) {
-        Long userId = prediction.getAssignedEmployeeId();
-        Optional<User> user = userRepository.findById(userId);
+        Optional<User> user = userRepository.findById(prediction.getSelectedEmployeeId());
         if (user.isPresent()) {
             task.setAssignedTo(user.get());
             task.setStatus(Task.Status.ACTIVE);  // Set the task status to ACTIVE once assigned
             taskRepository.save(task);
-            System.out.println("Task " + task.getTitle() + " assigned to User ID: " + userId);
+            System.out.println("Task " + task.getTitle() + " assigned to User ID: " + prediction.getSelectedEmployeeId());
         }
     }
 
@@ -130,13 +142,15 @@ public class TaskAssignmentService {
                 try {
                     // Build the request body for AI prediction
                     String requestBody = buildRequestBody(task, matchingUsers);
+                    log.info("Built request body : {}", requestBody);
 
                     // Make the API request
                     HttpHeaders headers = new HttpHeaders();
                     headers.set("Content-Type", "application/json");
 
                     HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
-                    System.out.println("Making the http request.......");
+                    log.info("Making the http request.......");
+
                     ResponseEntity<PredictionResponse> response = restTemplate.exchange(
                             aiServerUrl + "/predict-assignment",
                             HttpMethod.POST,
@@ -147,13 +161,13 @@ public class TaskAssignmentService {
                     // If the AI response is successful, assign the employee to the task
                     if (response.getStatusCode().is2xxSuccessful()) {
                         PredictionResponse prediction = response.getBody();
-                        System.out.println("Response received:= "+prediction);
+                        log.info("Response received:= {}",prediction);
                         assignEmployeeToTask(task, prediction);
                     } else {
-                        System.out.println("Failed to assign task " + task.getTitle());
+                        log.error("Failed to assign task : {}", task.getTitle());
                     }
                 } catch (Exception e) {
-                    System.err.println("Error while calling AI server: " + e.getMessage());
+                    log.error("Error while calling AI server: ", e);
                 }
             }
         }
