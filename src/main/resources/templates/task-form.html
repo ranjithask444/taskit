@@ -73,7 +73,7 @@
 
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1" for="skills">Skills</label>
-                <select id="skills" name="skills" multiple required
+                <select id="skills" name="skillIds" multiple required
                         class="w-full h-48 px-4 py-3 rounded-xl border border-gray-300 bg-white/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-400 focus:bg-white overflow-auto">
                     <option th:each="skill : ${skills}"
                             th:value="${skill.id}"
