@@ -152,7 +152,7 @@ public class TaskAssignmentService {
                     log.info("Making the http request.......");
 
                     ResponseEntity<PredictionResponse> response = restTemplate.exchange(
-                            aiServerUrl + "/predict-assignment",
+                            aiServerUrl,
                             HttpMethod.POST,
                             requestEntity,
                             PredictionResponse.class
