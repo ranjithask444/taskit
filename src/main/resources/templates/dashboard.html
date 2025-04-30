@@ -102,7 +102,7 @@
                 </td>
                 <td class="px-6 py-4" th:text="${task.priority}"></td>
                 <td class="px-6 py-4" th:text="${task.status}"></td>
-                <td class="px-6 py-4" th:text="${task.assignedTo.name}"></td>
+                <td class="px-6 py-4" th:text="${task.assignedTo?.name ?: 'Unassigned'}"></td>
             </tr>
             </tbody>
         </table>
