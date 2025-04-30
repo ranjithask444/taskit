@@ -47,4 +47,5 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT t FROM Task t ")
     Page<Task> findAllTasks(Pageable pageable);
 
+    List<Task> findByAssignedToIsNullAndStatusNot(Task.Status status);
 }

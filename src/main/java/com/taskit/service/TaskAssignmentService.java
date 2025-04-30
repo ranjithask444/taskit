@@ -18,9 +18,12 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Service
@@ -39,13 +42,13 @@ public class TaskAssignmentService {
     private UserRepository userRepository;
 
     private List<Task> fetchUnassignedTasks() {
-        return taskRepository.findByAssignedToIsNull();  // Assuming query method is defined to fetch unassigned tasks
+        return taskRepository.findByAssignedToIsNullAndStatusNot(Task.Status.COMPLETED);  // Assuming query method is defined to fetch unassigned tasks
     }
 
     private List<User> findMatchingEmployees(Task task) {
-        System.out.println("Checking for skills in:= "+ task.getSkillsRequired());
-        List<User> allUsers = userRepository.findBySkillsIn(task.getSkillsRequired());
-        System.out.println("Fetched all the users:= "+allUsers.size());
+        log.info("Checking for skills in:= {}", task.getSkillsRequired());
+        List<User> allUsers = userRepository.findBySkillsInAndAvailableBandwidthGreaterThan(task.getSkillsRequired(), task.getDeadline().getHour());
+        log.info("Fetched all the users:= {}",allUsers.size());
         return allUsers;
     }
 
@@ -59,59 +62,63 @@ public class TaskAssignmentService {
         return false;
     }
 
-    // Build the API request body for the AI server
     private String buildRequestBody(Task task, List<User> matchingUsers) {
-        // Prepare the JSON payload for the AI API call
-        StringBuilder userListJson = new StringBuilder("[");
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Create the root object
+        ObjectNode rootNode = mapper.createObjectNode();
+
+        // Add task details
+        rootNode.put("task_id", task.getId());
+        rootNode.put("task_title", task.getTitle());
+        rootNode.set("skills_required", formatSkills(task.getSkillsRequired()));  // Assuming this returns a JsonNode
+        rootNode.put("priority", mapPriority(task.getPriority()));
+        rootNode.put("deadline_hours", task.getDeadline().getHour());
+        rootNode.put("available_bandwidth", 10); // Placeholder for available bandwidth
+
+        // Prepare the candidate employees list
+        ArrayNode userListJson = mapper.createArrayNode();
         int cnt = 0;
         for (User user : matchingUsers) {
-            if(cnt>10)
-                break;
+            if (cnt > 10) break;
             cnt++;
-            userListJson.append("{")
-                    .append("\"user_id\": ").append(user.getId()).append(",")
-                    .append("\"skills\": ").append(formatSkills(user.getSkills())).append(",")
-                    .append("\"available_bandwidth\": ").append(user.getAvailableBandwidth())
-                    .append("},");
-        }
-        // Remove the last comma if matchingUsers is not empty
-        if (matchingUsers.size() > 0) {
-            userListJson.setLength(userListJson.length() - 1);
-        }
-        userListJson.append("]");
 
-        int priority = 0;
-        if(task.getPriority() == Task.Priority.HIGH){
-            priority = 1;
-        }
-        if(task.getPriority() == Task.Priority.MEDIUM){
-            priority = 2;
-        }
-        if(task.getPriority() == Task.Priority.LOW){
-            priority = 3;
+            ObjectNode userNode = mapper.createObjectNode();
+            userNode.put("user_id", user.getId());
+            userNode.set("skills", formatSkills(user.getSkills()));  // Assuming this returns a JsonNode
+            userNode.put("available_bandwidth", user.getAvailableBandwidth());
+
+            userListJson.add(userNode);
         }
 
-        return "{"
-                + "\"task_id\": " + task.getId() + ","
-                + "\"task_title\": \"" + task.getTitle() + "\","
-                + "\"skills_required\": " + formatSkills(task.getSkillsRequired()) + ","
-                + "\"priority\": \"" + priority + "\","
-                + "\"deadline_hours\": " + task.getDeadline().getHour() + ","
-                + "\"candidate_employees\": " + userListJson.toString()
-                + "}";
+        // Add candidate employees to the root object
+        rootNode.set("candidate_employees", userListJson);
+
+        // Return the JSON string representation of the root object
+        return rootNode.toString();
     }
 
-    private String formatSkills(Set<Skill> skillsSet) {
-        StringBuilder skillsJson = new StringBuilder("[");
-        List<Skill> skills = skillsSet.stream().toList();
-        for (Skill skill : skills) {
-            skillsJson.append("\"").append(skill.getId()).append("\",");
+    private int mapPriority(Task.Priority priority) {
+        return switch (priority) {
+            case HIGH -> 1;
+            case MEDIUM -> 2;
+            case LOW -> 3;
+        };
+    }
+
+    private ArrayNode formatSkills(Set<Skill> skillsSet) {
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Create an array node to represent the skills as a JSON array
+        ArrayNode skillsArray = mapper.createArrayNode();
+
+        // Iterate over the skills set and add each skill ID to the array
+        for (Skill skill : skillsSet) {
+            skillsArray.add(skill.getId());
         }
-        if (skillsJson.length() > 1) {
-            skillsJson.setLength(skillsJson.length() - 1); // Remove trailing comma
-        }
-        skillsJson.append("]");
-        return skillsJson.toString();
+
+        // Return the string representation of the JSON array
+        return skillsArray;
     }
 
 
@@ -122,23 +129,27 @@ public class TaskAssignmentService {
             task.setAssignedTo(user.get());
             task.setStatus(Task.Status.ACTIVE);  // Set the task status to ACTIVE once assigned
             taskRepository.save(task);
-            System.out.println("Task " + task.getTitle() + " assigned to User ID: " + prediction.getSelectedEmployeeId());
+            User userObject = user.get();
+            int availableBandwidth = userObject.getAvailableBandwidth() - task.getDeadline().getHour();
+            userObject.setAvailableBandwidth(Math.max(availableBandwidth, 0));
+            userRepository.save(userObject);
+            log.info("Task {} assigned to User ID: {}", task.getTitle() , prediction.getSelectedEmployeeId());
         }
     }
 
     // Make the request to the AI API and assign the task based on the response
     public void assignTasks() {
-        System.out.println("...................Called assignTasks.....................");
+        log.info("...................Called assignTasks.....................");
         List<Task> unassignedTasks = fetchUnassignedTasks();
 
 
         for (Task task : unassignedTasks) {
-            System.out.println("Found Unassinged tasks: = "+task);
+            log.info("Found Unassinged tasks: = {}", task);
             List<User> matchingUsers = findMatchingEmployees(task);
 
 
             if (!matchingUsers.isEmpty()) {
-                System.out.println("Found Employees tasks: = "+matchingUsers);
+                log.info("Found Employees tasks: = {}",matchingUsers);
                 try {
                     // Build the request body for AI prediction
                     String requestBody = buildRequestBody(task, matchingUsers);
@@ -149,7 +160,7 @@ public class TaskAssignmentService {
                     headers.set("Content-Type", "application/json");
 
                     HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
-                    log.info("Making the http request.......");
+                    log.info("Making the http request....... {}", requestEntity);
 
                     ResponseEntity<PredictionResponse> response = restTemplate.exchange(
                             aiServerUrl,

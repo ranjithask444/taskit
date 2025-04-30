@@ -36,9 +36,11 @@
             <a href="/user/1/tasks" class="text-gray-700 hover:text-blue-600 font-semibold text-lg transition-all duration-200">
                 My Tasks
             </a>
-            <a href="/ai/tasks/assign" class="text-gray-700 hover:text-purple-600 font-semibold text-lg transition-all duration-200">
-                Assign Tasks
-            </a>
+            <form action="/ai/tasks/assign" method="POST">
+                <button type="submit" class="text-gray-700 hover:text-purple-600 font-semibold text-lg transition-all duration-200">
+                    Assign Tasks
+                </button>
+            </form>
         </nav>
 
     </div>
